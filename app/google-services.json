@@ -1,0 +1,105 @@
+{
+  "project_info": {
+    "project_number": "358636737444",
+    "project_id": "sayari-70a2f",
+    "storage_bucket": "sayari-70a2f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358636737444:android:a4c807ab422ee3165a2731",
+        "android_client_info": {
+          "package_name": "com.example.sayari"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "358636737444-oqjeaqllghp5pkh8h57s569j3qcj6mg2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.sayari",
+            "certificate_hash": "b76789e7b4bb8203cf4ba392e99341b76ed9267c"
+          }
+        },
+        {
+          "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0YpnmnxxBBVDuFJuktRIBSLXq9Oz_xPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358636737444:android:286e8bf0568b7d215a2731",
+        "android_client_info": {
+          "package_name": "com.example.twinmind"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0YpnmnxxBBVDuFJuktRIBSLXq9Oz_xPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358636737444:android:7a43f6a41378d70b5a2731",
+        "android_client_info": {
+          "package_name": "com.example.twinmind2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0YpnmnxxBBVDuFJuktRIBSLXq9Oz_xPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
