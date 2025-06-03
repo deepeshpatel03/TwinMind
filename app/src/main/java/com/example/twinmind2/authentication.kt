@@ -219,7 +219,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         // Initially no session, but listen anyway for changes (empty session)
         listenToUserTranscripts(currentDate, currentSessionId)
         startPendingSyncWatcher()
-        syncFirebaseMemoriesToLocal(context,Firebase.firestore,userId)
+        syncFirebaseMemoriesToLocal(context,Firebase.firestore,userId!!)
         loadAllLocalMemories()
     }
 
@@ -382,7 +382,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
     }
     fun readLocalTranscripts(date: String, sessionId: String): List<TranscriptMetaData> {
         val sessionDir = File(context.getExternalFilesDir(null), "recordings")
-            .resolve(userId)
+            .resolve(userId!!)
             .resolve(date)
             .resolve(sessionId)
 
@@ -465,7 +465,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
             sessionId = currentSessionId,
             title = title,
             firestore = Firebase.firestore,
-            userId = userId
+            userId = userId!!
         )
 
         Log.d("recordervf", "Title generated: $title")
@@ -492,7 +492,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         if (date.isBlank() || sessionId.isBlank()) return
 
         if (isNetworkAvailable()) {
-            firestore.collection("users").document(userId)
+            firestore.collection("users").document(userId!!)
                 .collection(date)
                 .document(sessionId)
                 .collection("transcripts")
@@ -638,13 +638,13 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
     /* Firestore references */
 
     private fun FirebaseFirestore.chunksRef() =
-        collection("users").document(userId)
+        collection("users").document(userId!!)
             .collection(currentDate)
             .document(currentSessionId)
             .collection("transcripts")
 
     private fun FirebaseFirestore.sessionDoc() =
-        collection("users").document(userId)
+        collection("users").document(userId!!)
             .collection(currentDate)
             .document(currentSessionId)
 
@@ -739,7 +739,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     fun acesssummary(sessionId: String,date: String){
         val docRef = firestore.collection("users")
-            .document(userId)
+            .document(userId!!)
             .collection(date)
             .document(sessionId)
 
@@ -787,7 +787,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         )
 
         firestore.collection("users")
-            .document(userId)
+            .document(userId!!)
             .collection(date)
             .document(sessionId)
             .collection("questions")
@@ -804,7 +804,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     fun fetchAllQuestions(date: String, sessionId: String, onResult: (List<String>) -> Unit) {
         firestore.collection("users")
-            .document(userId)
+            .document(userId!!)
             .collection(date)
             .document(sessionId)
             .collection("questions")
