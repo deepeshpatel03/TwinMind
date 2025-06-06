@@ -97,7 +97,7 @@ fun CalendarEventScreen(viewModel: AuthViewModel) {
     ) { isGranted ->
         permissionGranted = isGranted
         if (isGranted) {
-            viewModel.loadEvents()
+            viewModel.loadEvents(context)
         } else {
             showRationale = true
         }
@@ -113,7 +113,7 @@ fun CalendarEventScreen(viewModel: AuthViewModel) {
         if (!currentStatus) {
             launcher.launch(Manifest.permission.READ_CALENDAR)
         } else {
-            viewModel.loadEvents()
+            viewModel.loadEvents(context)
         }
     }
 

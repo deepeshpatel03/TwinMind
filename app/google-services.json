@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "358636737444",
+    "firebase_url": "https://sayari-70a2f-default-rtdb.firebaseio.com",
     "project_id": "sayari-70a2f",
     "storage_bucket": "sayari-70a2f.firebasestorage.app"
   },
@@ -79,6 +80,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "358636737444-tucaoj38bb1bnauc8t632e7qjfp71prm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.twinmind2",
+            "certificate_hash": "259d838b992af67ed24a98764becbd19df28f004"
+          }
+        },
         {
           "client_id": "358636737444-55vf7ok2roo7ce7450pd7dcai531gdfs.apps.googleusercontent.com",
           "client_type": 3

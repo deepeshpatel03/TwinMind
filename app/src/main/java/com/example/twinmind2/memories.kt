@@ -13,8 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -23,10 +26,11 @@ import java.util.concurrent.TimeUnit
 // --- Main Screen ---
 @Composable
 fun MemoryListScreen(
-    memories: List<MemoryMetaData>,
+
     viewModel: AuthViewModel,
     navController: NavController
 ) {
+    val memories by viewModel.memoryList.collectAsState()
     val grouped = memories.sortedByDescending { it.startTime }.groupBy { it.date }
 
     LazyColumn(
@@ -38,13 +42,13 @@ fun MemoryListScreen(
         grouped.forEach { (date, items) ->
             item {
                 Text(
-                    text = formatDate(date),
+                    text =viewModel. formatDate(date),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
             items(items) { memory ->
-                MemoryCard(memory) { a, b ->
+                MemoryCard(viewModel,memory) { a, b ->
                     viewModel.setDate(a)
                     viewModel.setSessionId(b)
                     viewModel.tittle = memory.title
@@ -58,6 +62,7 @@ fun MemoryListScreen(
 }
 @Composable
 fun MemoryCard(
+    viewModel: AuthViewModel,
     memory: MemoryMetaData,
     onClick: (String, String) -> Unit
 ) {
@@ -82,7 +87,7 @@ fun MemoryCard(
                     .background(Color.White)
             ) {
                 Text(
-                    text = formatTime(memory.startTime),
+                    text = viewModel.formatTime(memory.startTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -96,37 +101,12 @@ fun MemoryCard(
                 )
             }
             Text(
-                text = formatDuration(memory.startTime, memory.endtime),
+                text = viewModel. formatDuration(memory.startTime, memory.endtime),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 8.dp),
                 color = Color.Gray
             )
         }
     }
-}
-fun formatDate(date: String): String {
-    // Convert "2025-05-12" to "Mon, May 12"
-    return try {
-        val parsed = LocalDate.parse(date)
-        parsed.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-    } catch (e: Exception) {
-        date
-    }
-}
-
-fun formatTime(timestamp: Long): String {
-    return Instant.ofEpochMilli(timestamp)
-        .atZone(ZoneId.systemDefault())
-        .toLocalTime()
-        .format(DateTimeFormatter.ofPattern("h:mm a"))
-}
-
-fun formatDuration(startTime: Long, endTime: Long): String {
-    val durationMillis = endTime - startTime
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis)
-    val hours = minutes / 60
-    val remainingMinutes = minutes % 60
-
-    return if (hours > 0) "${hours}h ${remainingMinutes}m" else "${remainingMinutes}m"
 }
 

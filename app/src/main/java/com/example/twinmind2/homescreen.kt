@@ -1,5 +1,6 @@
 package com.example.twinmind2
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,12 +46,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.collectLatest
 
 
@@ -66,9 +70,9 @@ fun TwinMindScreen(
 ) {
     val tabs = listOf("Memories", "Calendar", "Questions")
     var selectedTab by remember { mutableStateOf(1) } // Default to Calendar tab
+    val context= LocalContext.current
 
-
-    val memories by viewModel.memoryList.collectAsState()
+    val profilePictureUrl by viewModel.profilePictureUrl.collectAsState()
 
     Scaffold(
         topBar = {
@@ -101,7 +105,7 @@ fun TwinMindScreen(
                 },
                 navigationIcon = {
                     AsyncImage(
-                        model = profileImageUrl,
+                        model = profilePictureUrl,
                         contentDescription = "Profile",
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -196,7 +200,8 @@ fun TwinMindScreen(
         Column(
             Modifier
                 .padding(innerPadding)
-                .fillMaxSize().background(Color.White)
+                .fillMaxSize()
+                .background(Color.White)
         ) {
             // Progress Card
             Card(
@@ -228,7 +233,9 @@ fun TwinMindScreen(
 
                             contentDescription = "Profile picture",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.clip(CircleShape).size(64.dp)
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .size(64.dp)
                         )
                     }
                     Spacer(Modifier.height(8.dp))
@@ -286,7 +293,7 @@ fun TwinMindScreen(
 
             // Tab Content
             when (selectedTab) {
-                0->MemoryListScreen(memories,viewModel,navController)
+                0->MemoryListScreen( viewModel,navController)
                 1 -> CalendarEventScreen(viewModel)
 
                 else -> Box(

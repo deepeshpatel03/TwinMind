@@ -1,7 +1,11 @@
 package com.example.twinmind2
 
+import android.app.Activity.RESULT_OK
+
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,26 +26,40 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsActions.Dismiss
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.stevdzasan.onetap.GoogleButtonTheme
+import com.stevdzasan.onetap.GoogleUser
+import com.stevdzasan.onetap.OneTapGoogleButton
+import com.stevdzasan.onetap.OneTapSignInWithGoogle
+import com.stevdzasan.onetap.getUserFromTokenId
+import com.stevdzasan.onetap.rememberOneTapSignInState
+
 
 
 @Composable
-fun TwinMindLoginScreen(viewModel: AuthViewModel,navController: NavController) {
+fun TwinMindLoginScreen( onClick:(String )->Unit ) {
     val gradient = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF436C86),
@@ -49,35 +67,6 @@ fun TwinMindLoginScreen(viewModel: AuthViewModel,navController: NavController) {
         )
     )
     val context = LocalContext.current
-    val googleSignInClient = viewModel.getGoogleSignInClient(context)
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        if (task.isSuccessful) {
-            val account = task.result
-            val idToken = account.idToken
-            if (idToken != null) {
-                val credential = GoogleAuthProvider.getCredential(idToken, null)
-                FirebaseAuth.getInstance().signInWithCredential(credential)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            // User signed in successfully
-                            navController.navigate("home")
-                            Toast.makeText(context, "Google Sign-In successful", Toast.LENGTH_SHORT).show()
-                        } else {
-                            // Handle error
-                            Toast.makeText(context, "Authentication failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                        }
-                    }
-            } else {
-                Toast.makeText(context, "Google ID Token is null", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            Toast.makeText(context, "Google Sign-In failed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
 
     Box(
         modifier = Modifier
@@ -173,19 +162,17 @@ fun TwinMindLoginScreen(viewModel: AuthViewModel,navController: NavController) {
                 )
             }
             // Buttons
-            Column {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom,
-                ) {
-                    GoogleSignInButton(
-                        isLoading = false, // Track loading state in your ViewModel or state
-                        onClick = { launcher.launch(googleSignInClient.signInIntent) }
-                    )
-                }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                OneTapGoogleButton(
+                    clientId = context.getString(R.string.web_client_id),
+                    onTokenIdReceived = { onClick(it) },
+                    theme = GoogleButtonTheme.Neutral
+                )
 
-                // Footer Links
                 Spacer(modifier = Modifier.height(64.dp))
+
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
@@ -194,13 +181,13 @@ fun TwinMindLoginScreen(viewModel: AuthViewModel,navController: NavController) {
                         text = "Privacy Policy",
                         color = Color.White,
                         fontSize = 12.sp,
-                        modifier = Modifier.clickable { /* Handle click */ }
+                        modifier = Modifier.clickable { }
                     )
                     Text(
                         text = "Terms of Service",
                         color = Color.White,
                         fontSize = 12.sp,
-                        modifier = Modifier.clickable { /* Handle click */ }
+                        modifier = Modifier.clickable { }
                     )
                 }
             }
@@ -208,48 +195,3 @@ fun TwinMindLoginScreen(viewModel: AuthViewModel,navController: NavController) {
     }
 }
 
-@Composable
-fun GoogleSignInButton(
-    text: String = "Sign in with Google",
-    loadingText: String = "Signing in...",
-    isLoading: Boolean = false,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = ButtonDefaults.buttonColors(
-            Color.White
-        ),
-        elevation = ButtonDefaults.buttonElevation(8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_google), // Use your Google icon resource
-                contentDescription = "Google Sign-In",
-                tint = Color.Unspecified
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (isLoading) loadingText else text,
-                color = Color.Black
-            )
-            if (isLoading) {
-                Spacer(modifier = Modifier.width(16.dp))
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .height(16.dp)
-                        .width(16.dp),
-                    strokeWidth = 2.dp,
-                    color = Color.Gray
-                )
-            }
-        }
-    }
-}

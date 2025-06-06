@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
     id("kotlinx-serialization")
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -63,6 +66,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.foundation.layout.android)
     implementation(libs.firebase.ai)
+    implementation(libs.androidx.appcompat)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -80,4 +84,14 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("com.github.stevdza-san:OneTapCompose:1.0.14")
+
+}
+
+kapt {
+    correctErrorTypes = true
 }

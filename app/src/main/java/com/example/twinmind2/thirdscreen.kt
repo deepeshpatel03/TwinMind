@@ -238,8 +238,8 @@ fun MainScreen1(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    handleSubmit(
-                                        suggestion, date, sessionId, viewModel3,
+                                   viewModel3. handleSubmit(
+                                        suggestion, date, sessionId,
                                         onRefresh = {
                                             questions = it
                                             isLoading = false
@@ -285,8 +285,8 @@ fun MainScreen1(
                         IconButton(
                             onClick = {
                                 if (inputMessage.isNotBlank()) {
-                                    handleSubmit(
-                                        inputMessage.trim(), date, sessionId, viewModel3,
+                                   viewModel3. handleSubmit(
+                                        inputMessage.trim(), date, sessionId,
                                         onRefresh = {
                                             questions = it
                                             isLoading = false
@@ -325,7 +325,7 @@ fun MainScreen1(
                 ) {
                     Row(
                         Modifier
-                            .clickable { /* Handle Ask All Memories */ }
+                            .clickable { showSheet=true }
                             .padding(vertical = 12.dp, horizontal = 20.dp)
                             .background(Color(0xFFF5F5F5)),
                         verticalAlignment = Alignment.CenterVertically
@@ -356,8 +356,8 @@ fun MainScreen1(
             when (selectedTab) {
                 0 -> QuestionListScreen(questions, isLoading,{
                     showSheet = true
-                    handleSubmit(
-                        it.trim(), date, sessionId, viewModel3,
+                 viewModel3.handleSubmit(
+                        it.trim(), date, sessionId,
                         onRefresh = {
                             questions = it
                             isLoading = false
@@ -377,29 +377,3 @@ fun MainScreen1(
     }
 }
 
-// Reusable submission handler
-private fun handleSubmit(
-    message: String,
-    date: String,
-    sessionId: String,
-    viewModel: AuthViewModel,
-    onRefresh: (List<String>) -> Unit,
-    add:Boolean
-
-    ) {
-    if(add){
-    viewModel.addQuestion(message, date, sessionId)}
-    viewModel.askQuestionFromFullTranscript(message)
-    viewModel.fetchAllQuestions(date, sessionId, onRefresh)
-
-
-}
-
-
-
-@Serializable
-data class QuestionListScreen(
-    val userId :String= " ",
-    val date :String = " ",
-    val sessionId:String  = " "
-)

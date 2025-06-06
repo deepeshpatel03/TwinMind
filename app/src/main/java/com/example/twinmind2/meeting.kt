@@ -99,7 +99,11 @@ fun MeetingScreen(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var isRecording by remember { mutableStateOf(true) }
-    val tabs = listOf("Searches", "Notes", "Transcript")
+    val tabs = if(isRecording) {
+        listOf("Searches", "Notes", "Transcript")
+    }else{
+        listOf("Questions", "Notes", "Transcript")
+    }
     val sessionId = viewModel.currentSessionId1
 
 
@@ -227,12 +231,13 @@ fun MeetingScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    handleSubmit(
-                                        suggestion, date, sessionId, viewModel,
+                                    viewModel.handleSubmit(
+                                        suggestion, date, sessionId,
                                         onRefresh = {
                                             questions = it
                                             isLoading = false
-                                        }
+                                        },
+                                        add = false
                                     )
                                     inputMessage = ""
                                     submittedMessage = suggestion
@@ -272,12 +277,13 @@ fun MeetingScreen(
                         IconButton(
                             onClick = {
                                 if (inputMessage.isNotBlank()) {
-                                    handleSubmit(
-                                        inputMessage.trim(), date, sessionId, viewModel,
+                                    viewModel.handleSubmit(
+                                        inputMessage.trim(), date, sessionId,
                                         onRefresh = {
                                             questions = it
                                             isLoading = false
-                                        }
+                                        },
+                                        add=true
                                     )
                                     submittedMessage = inputMessage.trim()
                                     inputMessage = ""
@@ -353,7 +359,7 @@ fun MeetingScreen(
                         shape = RoundedCornerShape(50),
                         border = BorderStroke(1.dp, Color(0xFF003366))  // visible outline
                     ) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = null)
+                        Icon(painterResource(R.drawable.chatting), contentDescription = null,modifier=Modifier.size(32.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Chat with Transcript")
                     }
@@ -376,8 +382,22 @@ fun MeetingScreen(
                         shape = RoundedCornerShape(50),
                         border = BorderStroke(0.dp, Color.Transparent)
                     ) {
-                        Icon(painterResource(R.drawable.stop), contentDescription = null, tint = Color.Red, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.width(8.dp))
+                        if (!isRecording) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint =  Color(0xFF003366),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        } else{
+                            Icon(
+                                painterResource(R.drawable.stop),
+                                contentDescription = null,
+                                tint = Color.Red,
+                                modifier = Modifier.size(28.dp)
+                            )
+                    }
+                    Spacer(Modifier.width(8.dp))
                         Text(if (isRecording) "Stop" else "Start")
                     }
                 }
@@ -471,7 +491,21 @@ fun MeetingScreen(
                                 fontSize = 14.sp,
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
                             )}else{
-                                QuestionListScreen(questions, isLoading,{a->})
+                                QuestionListScreen(questions, isLoading,{
+                                    showSheet = true
+                                    viewModel.handleSubmit(
+                                        it.trim(), date, sessionId,
+                                        onRefresh = {
+                                            questions = it
+                                            isLoading = false
+                                        },
+                                        add=false
+                                    )
+
+                                    inputMessage=it
+                                    submittedMessage=it
+                                    showEditField = false
+                                })
                             }
 
                         }
@@ -485,21 +519,7 @@ fun MeetingScreen(
 }
 
 
-private fun handleSubmit(
-    message: String,
-    date: String,
-    sessionId: String,
-    viewModel: AuthViewModel,
-    onRefresh: (List<String>) -> Unit,
 
-
-    ) {
-
-    viewModel.addQuestion(message, date, sessionId)
-    viewModel.askQuestionFromFullTranscript(message)
-    viewModel.fetchAllQuestions(date, sessionId, onRefresh)
-
-}
 
 fun formatTextWithHeadings(input: String): AnnotatedString {
     return buildAnnotatedString {
@@ -621,7 +641,7 @@ fun QuestionListScreen(
                                 .fillMaxWidth()
                                 .background(Color.White)
                                 .padding(vertical = 4.dp)
-                                .clickable {onClick( question) }
+                                .clickable { onClick(question) }
                                 ,
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                             shape = RoundedCornerShape(12.dp),
@@ -629,7 +649,8 @@ fun QuestionListScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
-                                , modifier = Modifier.background(Color.White)
+                                , modifier = Modifier
+                                    .background(Color.White)
                                     .padding(4.dp)
                                     .fillMaxWidth()
 

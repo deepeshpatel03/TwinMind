@@ -23,13 +23,16 @@ import kotlinx.coroutines.launch
 
 
 import android.Manifest
+import android.app.Activity
 import android.media.MediaRecorder
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.app.ActivityCompat
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
@@ -54,79 +57,137 @@ import java.util.Locale
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.content
+import com.google.firebase.auth.ktx.auth
+import com.stevdzasan.onetap.GoogleUser
+import com.stevdzasan.onetap.getUserFromTokenId
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.asStateFlow
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 
 import java.util.*
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-class AuthViewModel (private val context: Context): ViewModel(  ) {
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    @ApplicationContext private val context: Context
+) : ViewModel( ) {
 
-//firebase authentication
-    fun getGoogleSignInClient(context: Context): GoogleSignInClient {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.google_cloud_server_client_id))
-            .requestEmail()
-            .build()
-        return GoogleSignIn.getClient(context, gso)
+
+    var userId = MutableStateFlow("")
+    private var username = MutableStateFlow("")
+  var profilePictureUrl = MutableStateFlow("")
+    private val _tokenId = mutableStateOf<String?>(null)
+
+
+    val tokenId: String? get() = _tokenId.value
+
+    // Public setter
+    fun setTokenId(token: String) {
+        _tokenId.value = token
+
+    }
+    val google = mutableStateOf<GoogleUser?>(null)
+  fun getgoogle(){
+      google.value= tokenId?.let { getUserFromTokenId(it) }
+      username.value=google.value?.fullName.toString()
+      profilePictureUrl.value=google.value?.picture.toString()
+      firebaseAuthWithGoogle()
+  }
+    fun firebaseAuthWithGoogle() {
+      try{
+        val credential = GoogleAuthProvider.getCredential(tokenId, null)
+        FirebaseAuth.getInstance().signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = FirebaseAuth.getInstance().currentUser
+                    userId.value= user?.uid.toString()
+                    Log.d("LOG", "signInWithCredential:success. User: ${user?.uid}")
+                    call( userId.value)
+                } else {
+                    Log.w("LOG", "signInWithCredential:failure", task.exception)
+                }
+            }
+      }catch (e:Exception){
+
+      }finally {
+
+      }
     }
 
     private val _events = MutableStateFlow<List<CalendarEvent>>(emptyList())
     val events: StateFlow<List<CalendarEvent>> = _events
 
-//load event from the calendar
-    fun loadEvents() {
+   fun handleSubmit(
+        message: String,
+        date: String,
+        sessionId: String,
+
+        onRefresh: (List<String>) -> Unit,
+        add:Boolean
+
+    ) {
+        if(add){
+           addQuestion(message, date, sessionId)}
+         askQuestionFromFullTranscript(message)
+         fetchAllQuestions(date, sessionId, onRefresh)
+
+
+    }
+    fun loadEvents(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (hasCalendarPermission()) {
-                try {
-                    // Calculate date range (now to 1 month later)
-                    val calendar = Calendar.getInstance()
-                    val now = calendar.timeInMillis
-                    calendar.add(Calendar.MONTH, 2)
-                    val oneMonthLater = calendar.timeInMillis
+            try {
+                val calendar = java.util.Calendar.getInstance()
+                val now = calendar.timeInMillis
+                calendar.add(java.util.Calendar.MONTH, 2)
+                val twoMonthsLater = calendar.timeInMillis
 
-                    val projection = arrayOf(
-                        CalendarContract.Events.TITLE,
-                        CalendarContract.Events.DESCRIPTION,
-                        CalendarContract.Events.DTSTART,
-                        CalendarContract.Events.DTEND
-                    )
+                val projection = arrayOf(
+                    CalendarContract.Events.TITLE,
+                    CalendarContract.Events.DESCRIPTION,
+                    CalendarContract.Events.DTSTART,
+                    CalendarContract.Events.DTEND
+                )
 
-                    // Query for events within the next month
-                    val cursor = context.contentResolver.query(
-                        CalendarContract.Events.CONTENT_URI,
-                        projection,
-                        "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?",
-                        arrayOf(now.toString(), oneMonthLater.toString()),
-                        "${CalendarContract.Events.DTSTART} ASC"
-                    )
+                val cursor = context.contentResolver.query(
+                    CalendarContract.Events.CONTENT_URI,
+                    projection,
+                    "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?",
+                    arrayOf(now.toString(), twoMonthsLater.toString()),
+                    "${CalendarContract.Events.DTSTART} ASC"
+                )
 
-                    val tempList = mutableListOf<CalendarEvent>()
-                    cursor?.use {
-                        while (it.moveToNext()) {
-                            val title = it.getString(0)
-                            val description = it.getString(1)
-                            val startTime = it.getLong(2)
-                            val endTime = it.getLong(3)
+                val tempList = mutableListOf<CalendarEvent>()
+                cursor?.use {
+                    while (it.moveToNext()) {
+                        val title = it.getString(0) ?: "No Title"
+                        val description = it.getString(1)
+                        val startTime = it.getLong(2)
+                        val endTime = it.getLong(3)
 
-                            tempList.add(
-                                CalendarEvent(
-                                    title = title ?: "No Title",
-                                    description = description,
-                                    startTime = startTime,
-                                    endTime = endTime
-                                )
+                        tempList.add(
+                            CalendarEvent(
+                                title = title,
+                                description = description,
+                                startTime = startTime,
+                                endTime = endTime
                             )
-                        }
+                        )
                     }
-                    _events.update { tempList.toList() }
-                } catch (e: SecurityException) {
-                    _events.update { emptyList() }
-                } catch (e: Exception) {
-                    _events.update { emptyList() }
                 }
+                _events.value = tempList
+            } catch (e: SecurityException) {
+                _events.value = emptyList()
+            } catch (e: Exception) {
+                _events.value = emptyList()
             }
         }
     }
-
     var tittle: String = ""
         get() = field           // Getter: returns the current value
         set(value) {            // Setter: sets the new value
@@ -165,7 +226,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         _eventsgroup.value = grouped
     }
 
-  val userId=FirebaseAuth.getInstance().currentUser?.uid
+
     //get and set event by seesion id for future use
 
     private val _date = MutableStateFlow("")
@@ -184,6 +245,31 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     private val _memoryList = MutableStateFlow<List<MemoryMetaData>>(emptyList())
     val memoryList: StateFlow<List<MemoryMetaData>> = _memoryList
+    fun formatDate(date: String): String {
+        // Convert "2025-05-12" to "Mon, May 12"
+        return try {
+            val parsed = LocalDate.parse(date)
+            parsed.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+        } catch (e: Exception) {
+            date
+        }
+    }
+
+    fun formatTime(timestamp: Long): String {
+        return Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .toLocalTime()
+            .format(DateTimeFormatter.ofPattern("h:mm a"))
+    }
+
+    fun formatDuration(startTime: Long, endTime: Long): String {
+        val durationMillis = endTime - startTime
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis)
+        val hours = minutes / 60
+        val remainingMinutes = minutes % 60
+
+        return if (hours > 0) "${hours}h ${remainingMinutes}m" else "${remainingMinutes}m"
+    }
 
 
     /* Core state */
@@ -215,15 +301,16 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     private var pendingWatcherRunning = false
 
-    init {
-        // Initially no session, but listen anyway for changes (empty session)
-        listenToUserTranscripts(currentDate, currentSessionId)
+    fun call(userId: String) {
+
+       if (!userId.isNullOrBlank()){
         startPendingSyncWatcher()
-        syncFirebaseMemoriesToLocal(context,Firebase.firestore,userId!!)
-        loadAllLocalMemories()
+        syncFirebaseMemoriesToLocal(context,Firebase.firestore,userId)
+
+
+    }
     }
 
-    /* Public API */
 
 
 
@@ -332,7 +419,6 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         }
     }
 
-    /* Transcription & Firestore sync */
 
     private fun transcribeAndSync(
         audioFile: File,
@@ -382,7 +468,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
     }
     fun readLocalTranscripts(date: String, sessionId: String): List<TranscriptMetaData> {
         val sessionDir = File(context.getExternalFilesDir(null), "recordings")
-            .resolve(userId!!)
+            .resolve(userId.value)
             .resolve(date)
             .resolve(sessionId)
 
@@ -458,14 +544,13 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         val titleResponse = model.generateContent(titlePrompt)
         val title = titleResponse.text?.takeIf { it.isNotBlank() } ?: "[No title generated]"
 
-// Save both locally and to Firebase
         saveMemoryMetadata(
             context = context,
             date = currentDate,
             sessionId = currentSessionId,
             title = title,
             firestore = Firebase.firestore,
-            userId = userId!!
+            userId = userId.value
         )
 
         Log.d("recordervf", "Title generated: $title")
@@ -486,13 +571,11 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         )
     }
 
-
-    /* Firestore listener for Compose UI */
     fun listenToUserTranscripts( date: String, sessionId: String) {
         if (date.isBlank() || sessionId.isBlank()) return
 
         if (isNetworkAvailable()) {
-            firestore.collection("users").document(userId!!)
+            firestore.collection("users").document(userId.value)
                 .collection(date)
                 .document(sessionId)
                 .collection("transcripts")
@@ -522,19 +605,6 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
             transcriptList.addAll(localTranscripts)
         }
     }
-
-
-    /* Pending chunks watcher */
-
-
-
-
-
-
-
-
-
-
 
     private fun startPendingSyncWatcher() {
         if (pendingWatcherRunning) return
@@ -582,6 +652,11 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
                 }
             } catch (e: Exception) {
                 Log.e("Sync", "Failed to parse pending metadata: ${e.message}")
+            }finally {
+                if(!isRecording){
+                    generateSessionSummary()
+                }
+
             }
         }
     }
@@ -638,13 +713,13 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
     /* Firestore references */
 
     private fun FirebaseFirestore.chunksRef() =
-        collection("users").document(userId!!)
+        collection("users").document(userId.value)
             .collection(currentDate)
             .document(currentSessionId)
             .collection("transcripts")
 
     private fun FirebaseFirestore.sessionDoc() =
-        collection("users").document(userId!!)
+        collection("users").document(userId.value)
             .collection(currentDate)
             .document(currentSessionId)
 
@@ -687,7 +762,14 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
 
     fun loadAllLocalMemories() {
+
+
         val memoryDir = File( context.getExternalFilesDir(null), "memories")
+        if (!memoryDir.exists() || !memoryDir.isDirectory) {
+            // Directory doesn't exist, no memories to load
+            _memoryList.value = emptyList()
+            return
+        }
         val memories = mutableListOf<MemoryMetaData>()
 
         memoryDir.listFiles()?.forEach { file ->
@@ -728,6 +810,8 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
                         }
                     } catch (e: Exception) {
                         Log.e("MemorySync", "Error saving memory: ${doc.id}", e)
+                    }finally {
+                        loadAllLocalMemories()
                     }
                 }
             }
@@ -739,7 +823,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     fun acesssummary(sessionId: String,date: String){
         val docRef = firestore.collection("users")
-            .document(userId!!)
+            .document(userId.value)
             .collection(date)
             .document(sessionId)
 
@@ -768,10 +852,17 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         val combinedTranscript = getAllTranscriptText(transcriptList)
         Log.d("SUMMARY", combinedTranscript)
         viewModelScope.launch {
-            val response = model.generateContent("$combinedTranscript\n\n$question")
-            val summary = response.text?.takeIf { it.isNotBlank() } ?: "[No summary generated]"
-            _answer.value=summary
-
+            try {
+                if(isNetworkAvailable()){
+                val response = model.generateContent("$combinedTranscript\n\n$question")
+                val summary = response.text?.takeIf { it.isNotBlank() } ?: "[No summary generated]"
+                _answer.value = summary
+            }else{
+                    _answer.value="no internet"
+            }
+        }catch (e: Exception){
+            _answer.value=e.toString()
+        }
         }
     }
 
@@ -787,7 +878,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
         )
 
         firestore.collection("users")
-            .document(userId!!)
+            .document(userId.value)
             .collection(date)
             .document(sessionId)
             .collection("questions")
@@ -804,7 +895,7 @@ class AuthViewModel (private val context: Context): ViewModel(  ) {
 
     fun fetchAllQuestions(date: String, sessionId: String, onResult: (List<String>) -> Unit) {
         firestore.collection("users")
-            .document(userId!!)
+            .document(userId.value)
             .collection(date)
             .document(sessionId)
             .collection("questions")
